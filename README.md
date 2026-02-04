@@ -7,7 +7,7 @@ This repository is designed to mimic a basic coding agent.
 The project is structured as a monorepo with two components:
 
 * **`/app` (The Target):** FastAPI backend with a SQLite database and test suite. It serves as the ground truth for evaluating agent performance.
-* **`/agent` (The Actor):** Agent harness. It uses an LLM (OpenAI/Anthropic) and a set of file-system and terminal tools to modify the `/app` code and run its tests.
+* **`/agent` (The Actor):** Agent harness. It uses an LLM and a set of file-system and terminal tools to modify the `/app` code and run its tests.
 
 ## Getting Started
 
