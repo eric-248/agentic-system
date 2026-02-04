@@ -26,7 +26,7 @@ cd app
 poetry install
 
 # Verify the app works
-poetry run pytest
+poetry run python -m pytest
 
 ```
 
