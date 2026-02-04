@@ -1,6 +1,6 @@
-# Agentic System Evaluation Sandbox
+# basic coding agent
 
-This repository is a dual-environment sandbox designed to study, build, and evaluate AI Coding Agents. It separates the "Actor" (The Agent) from the "Environment" (The App) to create a clean, deterministic testing ground for AI capabilities.
+This repository is designed to mimic a basic coding agent.
 
 ## Architecture
 
