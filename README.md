@@ -4,10 +4,10 @@ This repository is a dual-environment sandbox designed to study, build, and eval
 
 ## Architecture
 
-The project is structured as a monorepo with two distinct components:
+The project is structured as a monorepo with two components:
 
-* **`/app` (The Target):** A headless "Lab Rat" application. It is a FastAPI backend with a SQLite database and a robust test suite. It serves as the ground truth for evaluating agent performance.
-* **`/agent` (The Actor):** A Python-based agent harness. It uses an LLM (OpenAI/Anthropic) and a set of file-system and terminal tools to modify the `/app` code and run its tests.
+* **`/app` (The Target):** FastAPI backend with a SQLite database and test suite. It serves as the ground truth for evaluating agent performance.
+* **`/agent` (The Actor):** Agent harness. It uses an LLM (OpenAI/Anthropic) and a set of file-system and terminal tools to modify the `/app` code and run its tests.
 
 ## Getting Started
 
