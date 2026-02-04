@@ -28,6 +28,9 @@ poetry install
 # Verify the app works
 poetry run python -m pytest
 
+#Startup the app
+poetry run python -m uvicorn main:app --reload
+
 ```
 
 ### 2. Setup the Agent
