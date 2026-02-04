@@ -19,7 +19,9 @@ The project is structured as a monorepo with two components:
 
 ### 1. Setup the Target App
 
-The App must be running or installable for the agent to interact with it.
+The app for now is just purely a codebase for the agent to interact with.
+
+But if one were to want to startup the app
 
 ```bash
 cd app
@@ -42,7 +44,6 @@ cd agent
 poetry install
 
 # Configure Environment
-cp .env.example .env  # (Or create .env manually)
 # Add your OPENAI_API_KEY=... to the .env file
 
 ```
@@ -85,15 +86,7 @@ git restore app/
 
 ---
 
-## Evaluation Goals
-
-This project serves as the foundation for building an **AI Evaluation Tool**. The current phase focuses on:
-
-1. **Tool Use Accuracy:** Can the agent correctly invoke `pytest` using `poetry run`?
-2. **Error Recovery:** If a test fails, can the agent read the traceback and fix the code?
-3. **State Management:** Does the agent understand that modifying a Model requires updating the Pydantic schema?
-
-## Project Structure
+## Structure
 
 ```text
 Agentic/
