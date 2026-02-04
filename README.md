@@ -59,6 +59,12 @@ Run the agent interface to give it commands against the app.
 cd agent
 poetry run python main.py
 
+#If you get stuck in a quote prompt that looks like this
+<quote>
+<quote>
+
+Exit using Ctrl+C
+
 ```
 
 **Example Prompts:**
