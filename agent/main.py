@@ -90,49 +90,58 @@ def run_tool(name: str, arguments: dict) -> str:
 
 def main() -> None:
     client = OpenAI(api_key=api_key)
-    user_input = input("You: ").strip()
-    if not user_input:
-        return
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_input},
-    ]
+    print("Agent ready. Type your message (or 'exit' to quit).")
+    messages = []
     while True:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            tools=TOOLS,
-        )
-        msg = response.choices[0].message
-        if msg.tool_calls:
-            messages.append(
-                {
-                    "role": "assistant",
-                    "content": msg.content or "",
-                    "tool_calls": [
-                        {
-                            "id": tc.id,
-                            "type": "function",
-                            "function": {"name": tc.function.name, "arguments": tc.function.arguments},
-                        }
-                        for tc in msg.tool_calls
-                    ],
-                }
-            )
-            for tc in msg.tool_calls:
-                name = tc.function.name
-                try:
-                    args = json.loads(tc.function.arguments) if tc.function.arguments else {}
-                except json.JSONDecodeError:
-                    args = {}
-                result = run_tool(name, args)
-                messages.append(
-                    {"role": "tool", "tool_call_id": tc.id, "content": result}
-                )
+        user_input = input("You: ").strip()
+        if user_input.lower() in ("exit", "quit"):
+            break
+        if not user_input:
             continue
-        if msg.content:
-            print(msg.content)
-        break
+        if not messages:
+            messages = [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_input},
+            ]
+        else:
+            messages.append({"role": "user", "content": user_input})
+        while True:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                tools=TOOLS,
+            )
+            msg = response.choices[0].message
+            if msg.tool_calls:
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": msg.content or "",
+                        "tool_calls": [
+                            {
+                                "id": tc.id,
+                                "type": "function",
+                                "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                            }
+                            for tc in msg.tool_calls
+                        ],
+                    }
+                )
+                for tc in msg.tool_calls:
+                    name = tc.function.name
+                    try:
+                        args = json.loads(tc.function.arguments) if tc.function.arguments else {}
+                    except json.JSONDecodeError:
+                        args = {}
+                    result = run_tool(name, args)
+                    messages.append(
+                        {"role": "tool", "tool_call_id": tc.id, "content": result}
+                    )
+                continue
+            if msg.content:
+                print(msg.content)
+            messages.append({"role": "assistant", "content": msg.content or ""})
+            break
 
 
 if __name__ == "__main__":
