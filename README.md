@@ -84,24 +84,47 @@ git restore app/
 
 ```
 
+### Evaluation Harness
+
+The evaluation harness runs tasks against the agent in isolated app copies, records trajectories and outcomes, and grades results.
+
+```bash
+cd evaluation
+poetry install
+
+# From project root, run a suite (requires OPENAI_API_KEY)
+cd ..
+PYTHONPATH=. ./evaluation/.venv/bin/python -m evaluation --suite coding --trials 3
+
+# Or with fewer trials for a quick run:
+PYTHONPATH=. ./evaluation/.venv/bin/python -m evaluation --suite coding --trials 1
+```
+
+Results are written to `evaluation/results/<run_id>/` including `summary.json`, per-task trajectories, outcomes, and grader scores.
+
 ---
 
 ## Structure
 
 ```text
-Agentic/
-├── .gitignore          # Global ignores (API keys, DBs)
-├── README.md           # This file
+agentic-system/
+├── .gitignore
+├── README.md
 ├── app/                # The Target Application
 │   ├── main.py         # FastAPI Endpoints
 │   ├── models.py       # SQLModel/Pydantic Definitions
 │   ├── database.py     # DB Connection
 │   ├── tests/          # Pytest Suite
 │   └── poetry.lock     # Locked dependencies
-└── agent/              # The Agent Harness
-    ├── main.py         # ReAct Loop / Logic
-    ├── tools.py        # File/Terminal Interaction Tools
-    └── .env            # API Keys (Not committed)
+├── agent/              # The Agent Harness
+│   ├── main.py         # ReAct Loop / Logic
+│   ├── tools.py        # File/Terminal Interaction Tools
+│   └── .env            # API Keys (Not committed)
+└── evaluation/         # The Evaluation Harness
+    ├── suites/         # Task definitions (YAML)
+    ├── graders/        # Grading logic
+    ├── results/        # Run output (gitignored)
+    └── cli.py          # python -m evaluation
 
 ```
 

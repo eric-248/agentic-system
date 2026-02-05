@@ -2,11 +2,15 @@
 
 import json
 import os
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from tools import read_file, run_command, write_file
+from tools import APP_ROOT, get_tool_functions, read_file, run_command, write_file
 
 load_dotenv()
 api_key = os.environ.get("OPENAI_API_KEY")
@@ -17,6 +21,19 @@ SYSTEM_PROMPT = (
     "You are an expert coding agent. The app is in ../app. "
     "When running tests or server commands, ALWAYS prepend poetry run (e.g. poetry run pytest)."
 )
+
+
+@dataclass
+class RunResult:
+    """Result of running an agent task programmatically."""
+
+    messages: list[dict[str, Any]]
+    n_turns: int
+    n_tool_calls: int
+    usage: dict[str, int]
+    latency_sec: float
+    finished: bool
+
 
 TOOLS = [
     {
@@ -75,9 +92,9 @@ TOOL_FUNCTIONS = {
 }
 
 
-def run_tool(name: str, arguments: dict) -> str:
+def _run_tool(name: str, arguments: dict, tool_functions: dict[str, callable]) -> str:
     """Execute a tool by name with the given arguments; return result string."""
-    fn = TOOL_FUNCTIONS.get(name)
+    fn = tool_functions.get(name)
     if not fn:
         return f"Unknown tool: {name}"
     try:
@@ -86,6 +103,99 @@ def run_tool(name: str, arguments: dict) -> str:
         return f"Tool argument error: {e}"
     except Exception as e:
         return f"Tool error: {e}"
+
+
+def run_tool(name: str, arguments: dict) -> str:
+    """Execute a tool by name with the given arguments; return result string. Uses default TOOL_FUNCTIONS."""
+    return _run_tool(name, arguments, TOOL_FUNCTIONS)
+
+
+def run_agent_task(
+    task_instruction: str,
+    *,
+    app_root: Path,
+    system_prompt: str = SYSTEM_PROMPT,
+    model: str = "gpt-4o-mini",
+    max_turns: int = 50,
+    timeout_sec: float | None = None,
+) -> RunResult:
+    """Run the agent on a single task and return transcript + metadata.
+
+    Uses tools bound to app_root so the evaluator can run trials against isolated app copies.
+    """
+    client = OpenAI(api_key=api_key)
+    tool_functions = get_tool_functions(app_root)
+
+    messages: list[dict[str, Any]] = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": task_instruction},
+    ]
+
+    n_turns = 0
+    n_tool_calls = 0
+    usage: dict[str, int] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+    start = time.perf_counter()
+    finished = False
+
+    while n_turns < max_turns:
+        if timeout_sec is not None and (time.perf_counter() - start) > timeout_sec:
+            break
+
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=TOOLS,
+        )
+        msg = response.choices[0].message
+
+        if response.usage:
+            usage["prompt_tokens"] = getattr(response.usage, "prompt_tokens", 0) or 0
+            usage["completion_tokens"] = getattr(response.usage, "completion_tokens", 0) or 0
+            usage["total_tokens"] = getattr(response.usage, "total_tokens", 0) or 0
+
+        if msg.tool_calls:
+            n_turns += 1
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": msg.content or "",
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                        }
+                        for tc in msg.tool_calls
+                    ],
+                }
+            )
+            for tc in msg.tool_calls:
+                n_tool_calls += 1
+                name = tc.function.name
+                try:
+                    args = json.loads(tc.function.arguments) if tc.function.arguments else {}
+                except json.JSONDecodeError:
+                    args = {}
+                result = _run_tool(name, args, tool_functions)
+                messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
+            continue
+
+        if msg.content:
+            n_turns += 1
+
+        messages.append({"role": "assistant", "content": msg.content or ""})
+        finished = True
+        break
+
+    latency_sec = time.perf_counter() - start
+    return RunResult(
+        messages=messages,
+        n_turns=n_turns,
+        n_tool_calls=n_tool_calls,
+        usage=usage,
+        latency_sec=latency_sec,
+        finished=finished,
+    )
 
 
 def main() -> None:

@@ -8,27 +8,21 @@ AGENT_DIR = Path(__file__).resolve().parent
 APP_ROOT = (AGENT_DIR / ".." / "app").resolve()
 
 
-def _resolve_app_path(path: str) -> Path:
-    """Resolve path relative to APP_ROOT; raise if it escapes APP_ROOT."""
-    resolved = (APP_ROOT / path).resolve()
-    if not resolved.is_relative_to(APP_ROOT):
+def _resolve_app_path(path: str, app_root: Path) -> Path:
+    """Resolve path relative to app_root; raise if it escapes app_root."""
+    resolved = (app_root / path).resolve()
+    if not resolved.is_relative_to(app_root):
         raise ValueError(f"Path escapes app root: {path}")
     return resolved
 
 
-def run_command(cmd: str, cwd: str | None = None) -> str:
-    """Run a shell command. If cwd is provided (e.g. '../app'), run from that directory.
-
-    Working directory is resolved relative to the agent directory so cwd='../app'
-    runs from the app root. Returns a string with stdout, stderr, and exit code.
-    """
-    if cwd is None:
-        run_cwd = None
-    else:
-        # Resolve relative to agent dir: ../app -> APP_ROOT
-        run_cwd = (AGENT_DIR / cwd).resolve()
-        if not run_cwd.is_dir():
-            return f"Error: cwd is not a directory: {run_cwd}"
+def _run_command(cmd: str, cwd: str | None = None, *, app_root: Path) -> str:
+    """Run a shell command. If cwd is '../app' or None, run from app_root."""
+    run_cwd = app_root
+    if cwd is not None and cwd != "../app":
+        candidate = (AGENT_DIR / cwd).resolve() if not Path(cwd).is_absolute() else Path(cwd)
+        if candidate.is_dir():
+            run_cwd = candidate
     try:
         result = subprocess.run(
             cmd,
@@ -50,10 +44,10 @@ def run_command(cmd: str, cwd: str | None = None) -> str:
         return f"Error running command: {e}"
 
 
-def read_file(path: str) -> str:
-    """Read a file from ../app. Path is relative to the app root."""
+def _read_file(path: str, app_root: Path) -> str:
+    """Read a file from app. Path is relative to the app root."""
     try:
-        full = _resolve_app_path(path)
+        full = _resolve_app_path(path, app_root)
         return full.read_text(encoding="utf-8", errors="replace")
     except ValueError as e:
         return str(e)
@@ -65,10 +59,10 @@ def read_file(path: str) -> str:
         return f"Error reading file: {e}"
 
 
-def write_file(path: str, contents: str) -> str:
-    """Write contents to a file in ../app. Path is relative to the app root. Creates parent dirs if needed."""
+def _write_file(path: str, contents: str, app_root: Path) -> str:
+    """Write contents to a file in app. Path is relative to the app root. Creates parent dirs if needed."""
     try:
-        full = _resolve_app_path(path)
+        full = _resolve_app_path(path, app_root)
         full.parent.mkdir(parents=True, exist_ok=True)
         full.write_text(contents, encoding="utf-8")
         return f"Wrote {path}"
@@ -76,3 +70,29 @@ def write_file(path: str, contents: str) -> str:
         return str(e)
     except Exception as e:
         return f"Error writing file: {e}"
+
+
+def run_command(cmd: str, cwd: str | None = None) -> str:
+    """Run a shell command. Uses default APP_ROOT. For parameterized app_root, use get_tool_functions()."""
+    return _run_command(cmd, cwd, APP_ROOT)
+
+
+def read_file(path: str) -> str:
+    """Read a file from ../app. Uses default APP_ROOT. For parameterized app_root, use get_tool_functions()."""
+    return _read_file(path, APP_ROOT)
+
+
+def write_file(path: str, contents: str) -> str:
+    """Write contents to a file in ../app. Uses default APP_ROOT. For parameterized app_root, use get_tool_functions()."""
+    return _write_file(path, contents, APP_ROOT)
+
+
+def get_tool_functions(app_root: Path) -> dict[str, callable]:
+    """Return tool functions bound to the given app_root for use by run_agent_task."""
+    from functools import partial
+
+    return {
+        "run_command": partial(_run_command, app_root=app_root),
+        "read_file": partial(_read_file, app_root=app_root),
+        "write_file": partial(_write_file, app_root=app_root),
+    }
