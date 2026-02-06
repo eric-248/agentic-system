@@ -1,0 +1,50 @@
+# Evaluation suite: coding tasks
+# Matches README evaluation goals: tool use, error recovery, state management
+
+suite_id: coding
+description: "Coding agent tasks: run tests, fix bugs, manage state"
+
+tasks:
+  - id: run_pytest
+    name: "Run pytest"
+    instruction: "Run the test suite for the app. Use poetry run pytest. Report whether all tests passed."
+    graders:
+      - deterministic_tests
+      - tool_calls
+    tool_calls:
+      max_turns: 15
+      max_tool_calls: 20
+
+  - id: fix_empty_title
+    name: "Fix empty title validation"
+    instruction: |
+      There is a bug where creating a todo with an empty title succeeds.
+      Add validation so that creating a todo with an empty title returns 422 and does not create a record.
+    graders:
+      - deterministic_tests
+      - state_check
+    state_check:
+      no_empty_titles: true
+
+  - id: create_min_todos
+    name: "Create at least 2 todos"
+    instruction: "Create at least 2 todos in the app. Each todo must have a non-empty title."
+    graders:
+      - deterministic_tests
+      - state_check
+      - tool_calls
+    state_check:
+      min_todos: 2
+    tool_calls:
+      max_turns: 10
+      max_tool_calls: 12
+
+  - id: create_max_todos
+    name: "Create at most 1 todo"
+    instruction: "Create at most 1 todo in the app. If there are already todos, do not add more."
+    graders:
+      - deterministic_tests
+      - state_check
+    state_check:
+      max_todos: 1
+  

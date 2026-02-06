@@ -1,0 +1,17 @@
+[project]
+name = "evaluation"
+version = "0.1.0"
+description = "Evaluation harness for the agent"
+requires-python = ">=3.13"
+dependencies = [
+    "pyyaml>=6.0",
+    "python-dotenv>=1.2.0",
+    "openai>=2.16.0",
+]
+
+[tool.poetry]
+package-mode = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
