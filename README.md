@@ -92,12 +92,11 @@ The evaluation harness runs tasks against the agent in isolated app copies, reco
 cd evaluation
 poetry install
 
-# From project root, run a suite (requires OPENAI_API_KEY)
-cd ..
-PYTHONPATH=. ./evaluation/.venv/bin/python -m evaluation --suite coding --trials 3
+# To run an evaluation
+python -m evaluation --suite coding --trials 3
 
 # Or with fewer trials for a quick run:
-PYTHONPATH=. ./evaluation/.venv/bin/python -m evaluation --suite coding --trials 1
+python -m evaluation --suite coding --trials 1
 ```
 
 Results are written to `evaluation/results/<run_id>/` including `summary.json`, per-task trajectories, outcomes, and grader scores.
